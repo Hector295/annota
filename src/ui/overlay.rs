@@ -10,7 +10,7 @@ use gtk::{gdk, gio, glib};
 
 use super::toolbar::Toolbar;
 use super::view::View;
-use crate::capture::CapturedImage;
+use crate::capture::{CapturedImage, MonitorRect};
 use crate::config::Config;
 use crate::editor::canvas::Hover;
 use crate::editor::{Canvas, Point, Tool};
@@ -51,17 +51,36 @@ struct MonitorPlacement {
 /// Maps the logical monitor layout onto the capture. The portal returns the
 /// whole desktop as one image; GNOME renders it at a single scale, so one
 /// factor (capture pixels per logical pixel) applies to all monitors.
-fn place_monitors(
-    display: &gdk::Display,
-    width: f64,
-    height: f64,
-) -> Result<Vec<MonitorPlacement>> {
+fn place_monitors(display: &gdk::Display, image: &CapturedImage) -> Result<Vec<MonitorPlacement>> {
     let list = display.monitors();
     let monitors: Vec<gdk::Monitor> = (0..list.n_items())
         .filter_map(|i| list.item(i).and_downcast::<gdk::Monitor>())
         .collect();
     anyhow::ensure!(!monitors.is_empty(), "no monitors found");
     let rects: Vec<_> = monitors.iter().map(|m| m.geometry()).collect();
+
+    // Backends that know each monitor's physical area (Windows) allow a
+    // different scale per monitor.
+    let origins: Vec<(i32, i32)> = rects.iter().map(|r| (r.x(), r.y())).collect();
+    if let Some(order) = pair_by_position(&origins, &image.monitors) {
+        return Ok(monitors
+            .into_iter()
+            .zip(rects)
+            .zip(order)
+            .map(|((monitor, r), i)| {
+                let m = image.monitors[i];
+                MonitorPlacement {
+                    monitor,
+                    origin: Point::new(f64::from(m.x), f64::from(m.y)),
+                    scale: f64::from(m.width) / f64::from(r.width().max(1)),
+                }
+            })
+            .collect());
+    }
+
+    // Otherwise (GNOME portal) the capture covers the logical layout at one
+    // scale.
+    let (width, height) = (f64::from(image.width()), f64::from(image.height()));
     let (x0, y0) = rects.iter().fold((i32::MAX, i32::MAX), |(x, y), r| {
         (x.min(r.x()), y.min(r.y()))
     });
@@ -84,6 +103,25 @@ fn place_monitors(
             scale: kx,
         })
         .collect())
+}
+
+/// For each logical monitor origin, the index of the physical monitor
+/// rectangle it corresponds to. Logical and physical layouts differ in
+/// scale but keep the monitors' relative order, so both are sorted by
+/// position (left to right, then top to bottom) and paired.
+fn pair_by_position(logical: &[(i32, i32)], physical: &[MonitorRect]) -> Option<Vec<usize>> {
+    if physical.is_empty() || logical.len() != physical.len() {
+        return None;
+    }
+    let mut by_logical: Vec<usize> = (0..logical.len()).collect();
+    by_logical.sort_by_key(|&i| logical[i]);
+    let mut by_physical: Vec<usize> = (0..physical.len()).collect();
+    by_physical.sort_by_key(|&i| (physical[i].x, physical[i].y));
+    let mut order = vec![0; logical.len()];
+    for (l, p) in by_logical.into_iter().zip(by_physical) {
+        order[l] = p;
+    }
+    Some(order)
 }
 
 /// Copies the texture into a Cairo surface (needed for pixelation/export).
@@ -109,7 +147,7 @@ impl Session {
         let display = gdk::Display::default().context("no display")?;
         super::load_css(&display);
         let (w, h) = (f64::from(image.width()), f64::from(image.height()));
-        let placements = place_monitors(&display, w, h)?;
+        let placements = place_monitors(&display, &image)?;
         let source = surface_from_texture(&image.texture)?;
         let config = Config::load();
         let mut canvas = Canvas::new(w, h);
@@ -517,4 +555,36 @@ fn is_shift(gesture: &gtk::GestureDrag) -> bool {
     gesture
         .current_event_state()
         .contains(gdk::ModifierType::SHIFT_MASK)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rect(x: i32, y: i32, width: i32, height: i32) -> MonitorRect {
+        MonitorRect {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    #[test]
+    fn pairs_monitors_by_position_despite_scale() {
+        // Laptop at 150 % on the left, external 100 % monitor on the right,
+        // listed in a different order by each API.
+        let logical = [(1707, 0), (0, 0)];
+        let physical = [rect(0, 0, 2560, 1600), rect(2560, 0, 1920, 1080)];
+        assert_eq!(pair_by_position(&logical, &physical), Some(vec![1, 0]));
+    }
+
+    #[test]
+    fn falls_back_without_physical_rects() {
+        assert_eq!(pair_by_position(&[(0, 0)], &[]), None);
+        assert_eq!(
+            pair_by_position(&[(0, 0), (1920, 0)], &[rect(0, 0, 1, 1)]),
+            None
+        );
+    }
 }

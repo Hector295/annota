@@ -9,7 +9,7 @@ use gtk::prelude::*;
 use gtk::{Application, gio, glib};
 
 use crate::capture::{self, CaptureError, ScreenshotBackend};
-use crate::ui::{Session, permission};
+use crate::ui::Session;
 
 /// Reverse-DNS id. Used for D-Bus single instance, the portal and Flatpak.
 pub const APP_ID: &str = "io.github.hector295.Annota";
@@ -19,6 +19,7 @@ enum State {
     #[default]
     Idle,
     Capturing,
+    #[cfg(target_os = "linux")]
     AskingPermission(gtk::ApplicationWindow),
     Editing(Rc<Session>),
 }
@@ -62,6 +63,7 @@ pub fn run() -> glib::ExitCode {
 fn activate(app: &Application, state: &SharedState, delay: Duration) {
     match &*state.borrow() {
         State::Capturing => return,
+        #[cfg(target_os = "linux")]
         State::AskingPermission(window) => return window.present(),
         State::Editing(session) => return session.present(),
         State::Idle => {}
@@ -84,16 +86,7 @@ fn start_capture(app: &Application, state: &SharedState, delay: Duration) {
         let image = match result {
             Ok(image) => image,
             Err(CaptureError::Cancelled) => return,
-            Err(CaptureError::Refused) => {
-                if let Some(scope) = capture::foreign_scope() {
-                    eprintln!(
-                        "annota: the portal refused the capture. This process runs inside {scope}, \
-                         so GNOME attributes it to that app. Run annota from a normal terminal \
-                         or from the applications menu."
-                    );
-                }
-                return ask_permission(&app, &state);
-            }
+            Err(CaptureError::Refused) => return on_refused(&app, &state),
             Err(CaptureError::Failed(err)) => return eprintln!("annota: {err:#}"),
         };
         let reset = state.clone();
@@ -104,7 +97,19 @@ fn start_capture(app: &Application, state: &SharedState, delay: Duration) {
     });
 }
 
-fn ask_permission(app: &Application, state: &SharedState) {
+/// The system refused to capture. On GNOME that usually means the app has
+/// no screenshot permission yet: offer the first-run permission window.
+#[cfg(target_os = "linux")]
+fn on_refused(app: &Application, state: &SharedState) {
+    use crate::ui::permission;
+
+    if let Some(scope) = capture::foreign_scope() {
+        eprintln!(
+            "annota: the portal refused the capture. This process runs inside {scope}, \
+             so GNOME attributes it to that app. Run annota from a normal terminal \
+             or from the applications menu."
+        );
+    }
     let (granted_app, granted_state) = (app.clone(), state.clone());
     let window = permission::show(app, move || {
         start_capture(&granted_app, &granted_state, Duration::ZERO)
@@ -117,4 +122,9 @@ fn ask_permission(app: &Application, state: &SharedState) {
         glib::Propagation::Proceed
     });
     *state.borrow_mut() = State::AskingPermission(window);
+}
+
+#[cfg(not(target_os = "linux"))]
+fn on_refused(_: &Application, _: &SharedState) {
+    eprintln!("annota: the system refused to capture the screen");
 }

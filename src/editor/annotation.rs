@@ -12,6 +12,13 @@ pub use number::NumberAnnotation;
 pub use rectangle::RectangleAnnotation;
 pub use text::TextAnnotation;
 
+/// Font family for text and number badges.
+#[cfg(windows)]
+pub const FONT_FAMILY: &str = "Segoe UI";
+/// Font family for text and number badges (resolved by fontconfig).
+#[cfg(not(windows))]
+pub const FONT_FAMILY: &str = "Sans";
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,

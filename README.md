@@ -122,11 +122,22 @@ Principios:
 - **Pixelado** usa solo la captura original: no pixela anotaciones que estén debajo.
 - KDE Plasma y X11 deberían funcionar vía portal, pero no se han probado.
 
+## Windows (experimental)
+
+La captura usa GDI (sin permisos) y cada monitor conserva su propia escala. Se compila con
+GitHub Actions (MSYS2 + GTK4) y se distribuye como carpeta portable:
+`annota-windows-x86_64.zip` → descomprimir y ejecutar `annota\annota.exe`.
+Aún no tiene tecla global ni icono en la bandeja: crea un acceso directo a `annota.exe` y
+asígnale una tecla en sus propiedades.
+
 ## Empaquetado
 
 ```sh
 cargo install cargo-deb && cargo deb          # → target/debian/annota_*.deb
 ```
+
+El workflow `.github/workflows/build.yml` compila y empaqueta Linux (`.deb` + `.tar.gz`) y
+Windows (`.zip`) en cada push; al crear una etiqueta `v*` los publica en una Release.
 
 Flatpak (runtime GNOME 51): ver `flatpak/io.github.hector295.Annota.yml`; requiere generar
 `cargo-sources.json` con `flatpak-cargo-generator.py` (flatpak-builder-tools).

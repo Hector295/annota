@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 # gtk4-rs 0.11 requires rustc 1.92.
 rust-version = "1.92"
-description = "Lightweight screenshot and annotation tool for Linux (Wayland/GNOME first)"
+description = "Lightweight screenshot and annotation tool (Linux Wayland/GNOME first, Windows)"
 license = "Apache-2.0"
 repository = "https://github.com/Hector295/annota"
 
@@ -14,9 +14,19 @@ gtk = { package = "gtk4", version = "0.11", features = ["v4_14"] }
 anyhow = "1"
 # Same version gtk4 uses; named directly so the editor does not depend on GTK.
 cairo-rs = { version = "0.22", features = ["png"] }
-ashpd = { version = "0.13", default-features = false, features = ["async-io", "screenshot"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ashpd = { version = "0.13", default-features = false, features = ["async-io", "screenshot"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_UI_HiDpi",
+    "Win32_UI_WindowsAndMessaging",
+] }
 
 [profile.dev.package."*"]
 # Keep 4K image decoding/encoding usable in debug builds.

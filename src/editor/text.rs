@@ -1,7 +1,7 @@
 //! Text uses Cairo's simple font API: no extra dependency, good enough for
 //! short labels. Pango would be the upgrade path for complex scripts.
 
-use super::annotation::Color;
+use super::annotation::{Color, FONT_FAMILY};
 use super::geometry::{Point, Rect};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,7 +35,7 @@ impl TextAnnotation {
         } else {
             cairo::FontWeight::Normal
         };
-        ctx.select_font_face("Sans", cairo::FontSlant::Normal, weight);
+        ctx.select_font_face(FONT_FAMILY, cairo::FontSlant::Normal, weight);
         ctx.set_font_size(self.size);
     }
 

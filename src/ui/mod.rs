@@ -2,6 +2,7 @@
 //! and the floating toolbar.
 
 mod overlay;
+#[cfg(target_os = "linux")]
 pub mod permission;
 mod toolbar;
 mod view;

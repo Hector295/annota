@@ -1,4 +1,4 @@
-use super::annotation::Color;
+use super::annotation::{Color, FONT_FAMILY};
 use super::geometry::{Point, Rect};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -35,7 +35,11 @@ impl NumberAnnotation {
         ctx.fill()?;
 
         let label = self.number.to_string();
-        ctx.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Bold);
+        ctx.select_font_face(
+            FONT_FAMILY,
+            cairo::FontSlant::Normal,
+            cairo::FontWeight::Bold,
+        );
         // Shrink a little for multi-digit numbers so they stay inside.
         let digits = label.len().max(1) as f64;
         ctx.set_font_size(

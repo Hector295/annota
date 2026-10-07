@@ -1,0 +1,95 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deb
+      - name: Build .deb
+        run: cargo deb && cp target/debian/*.deb .
+      - name: Portable tarball
+        run: |
+          mkdir -p dist/annota
+          cp target/release/annota README.md LICENSE dist/annota/
+          cp -r data dist/annota/
+          tar -C dist -czf annota-linux-x86_64.tar.gz annota
+      - uses: actions/upload-artifact@v4
+        with:
+          name: annota-linux-x86_64
+          path: |
+            *.deb
+            annota-linux-x86_64.tar.gz
+
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: zip
+          pacboy: >-
+            gcc:p pkgconf:p rust:p gtk4:p librsvg:p adwaita-icon-theme:p
+      - uses: actions/cache@v4
+        with:
+          path: target
+          key: windows-target-${{ hashFiles('Cargo.lock') }}
+      - run: rustc --version && pkg-config --modversion gtk4
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
+      - run: cargo build --release
+      - name: Bundle
+        run: packaging/windows/bundle.sh
+      - name: Smoke test outside MSYS2 (all DLLs bundled)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\annota\annota.exe -ArgumentList '--help' -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "annota.exe --help exited with $($p.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: annota-windows-x86_64
+          path: annota-windows-x86_64.zip
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.deb
+            artifacts/*.tar.gz
+            artifacts/*.zip

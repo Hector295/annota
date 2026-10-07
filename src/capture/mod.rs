@@ -2,20 +2,35 @@
 //!
 //! A backend only has to produce the full desktop as a [`gdk::Texture`].
 //! GDK exists on every platform GTK supports, so the editor and UI stay
-//! independent of how the pixels were obtained (portal, X11, Windows
-//! Graphics Capture, ...).
+//! independent of how the pixels were obtained.
 
+#[cfg(target_os = "linux")]
 mod portal;
+#[cfg(windows)]
+mod windows;
 
-use anyhow::Result;
 use gtk::gdk;
 use gtk::prelude::*;
 
-pub use portal::PortalBackend;
+#[cfg(target_os = "linux")]
+pub use portal::foreign_scope;
+
+/// A monitor's area inside the capture, in capture pixels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MonitorRect {
+    pub x: i32,
+    pub y: i32,
+    pub width: i32,
+    pub height: i32,
+}
 
 /// The full desktop, in physical pixels.
 pub struct CapturedImage {
     pub texture: gdk::Texture,
+    /// Where each monitor is inside the capture, when the backend knows.
+    /// Empty means "derive it from the GDK monitor layout", which assumes
+    /// one scale for all monitors (true for GNOME captures).
+    pub monitors: Vec<MonitorRect>,
 }
 
 impl CapturedImage {
@@ -52,31 +67,13 @@ pub trait ScreenshotBackend {
 }
 
 /// The backend suited to the current platform.
+#[cfg(target_os = "linux")]
 pub fn default_backend() -> impl ScreenshotBackend {
-    PortalBackend
+    portal::PortalBackend
 }
 
-/// The systemd scope of this process when it belongs to *another*
-/// sandboxed app (e.g. `snap.rustrover.rustrover-….scope` when started from
-/// an IDE terminal). The portal then attributes our captures to that app.
-pub fn foreign_scope() -> Option<String> {
-    let cgroup = std::fs::read_to_string("/proc/self/cgroup").ok()?;
-    let scope = cgroup
-        .lines()
-        .find_map(|l| l.strip_prefix("0::"))?
-        .rsplit('/')
-        .next()?;
-    let foreign = scope.starts_with("snap.")
-        || scope.starts_with("app-flatpak-")
-        || (scope.starts_with("app-") && !scope.contains(crate::app::APP_ID));
-    // GNOME Terminal and friends run shells in `vte-spawn-*` or `app-gnome-*-terminal*`
-    // scopes; those are treated as plain host processes and are fine.
-    let terminal =
-        scope.contains("Terminal") || scope.contains("terminal") || scope.contains("terminator");
-    (foreign && !terminal).then(|| scope.to_owned())
-}
-
-/// Helper so backends can use `?` with plain `anyhow` results.
-fn failed<T>(result: Result<T>) -> Result<T, CaptureError> {
-    result.map_err(CaptureError::Failed)
+/// The backend suited to the current platform.
+#[cfg(windows)]
+pub fn default_backend() -> impl ScreenshotBackend {
+    windows::GdiBackend
 }
