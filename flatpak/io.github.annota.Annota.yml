@@ -1,0 +1,40 @@
+# Build:
+#   python3 flatpak-cargo-generator.py ../Cargo.lock -o cargo-sources.json
+#   flatpak-builder --user --install --force-clean build-dir io.github.annota.Annota.yml
+# (flatpak-cargo-generator.py comes from github.com/flatpak/flatpak-builder-tools)
+id: io.github.annota.Annota
+runtime: org.gnome.Platform
+runtime-version: "51"
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: annota
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+  # The screenshot and file chooser portals need no extra permissions.
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+  env:
+    CARGO_HOME: /run/build/annota/cargo
+    CARGO_NET_OFFLINE: "true"
+modules:
+  - name: annota
+    buildsystem: simple
+    build-commands:
+      - cargo --offline fetch --manifest-path Cargo.toml --verbose
+      - cargo --offline build --release --verbose
+      - install -Dm755 target/release/annota /app/bin/annota
+      - install -Dm644 data/io.github.annota.Annota.desktop /app/share/applications/io.github.annota.Annota.desktop
+      - install -Dm644 data/io.github.annota.Annota.metainfo.xml /app/share/metainfo/io.github.annota.Annota.metainfo.xml
+      - install -Dm644 data/icons/io.github.annota.Annota.svg /app/share/icons/hicolor/scalable/apps/io.github.annota.Annota.svg
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - target
+          - flatpak/build-dir
+          - flatpak/.flatpak-builder
+      - cargo-sources.json

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.annota.Annota</id>
+  <name>Annota</name>
+  <summary>Select a screen region and annotate it</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <description>
+    <p>
+      A lightweight screenshot tool: select a region, draw rectangles, arrows,
+      lines, text, numbered steps or pixelate sensitive data, then copy the
+      result to the clipboard or save it as PNG.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.annota.Annota.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.1.0" date="2026-10-07"/>
+  </releases>
+</component>

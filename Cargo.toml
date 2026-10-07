@@ -1,0 +1,41 @@
+[package]
+name = "annota"
+version = "0.1.0"
+edition = "2024"
+# gtk4-rs 0.11 requires rustc 1.92.
+rust-version = "1.92"
+description = "Lightweight screenshot and annotation tool for Linux (Wayland/GNOME first)"
+license = "Apache-2.0"
+
+[dependencies]
+# GTK 4.14 is the baseline (Ubuntu 24.04). Fedora 41+ and Debian 13 ship newer.
+gtk = { package = "gtk4", version = "0.11", features = ["v4_14"] }
+anyhow = "1"
+# Same version gtk4 uses; named directly so the editor does not depend on GTK.
+cairo-rs = { version = "0.22", features = ["png"] }
+ashpd = { version = "0.13", default-features = false, features = ["async-io", "screenshot"] }
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+
+[profile.dev.package."*"]
+# Keep 4K image decoding/encoding usable in debug builds.
+opt-level = 2
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+# `cargo deb` (https://crates.io/crates/cargo-deb)
+[package.metadata.deb]
+maintainer = "Annota developers"
+section = "graphics"
+extended-description = "Select a screen region, annotate it and copy or save it. Captures through xdg-desktop-portal, so it works on Wayland."
+depends = "$auto, xdg-desktop-portal, xdg-desktop-portal-gnome | xdg-desktop-portal-kde | xdg-desktop-portal-backend"
+assets = [
+    ["target/release/annota", "usr/bin/", "755"],
+    ["data/io.github.annota.Annota.desktop", "usr/share/applications/", "644"],
+    ["data/io.github.annota.Annota.metainfo.xml", "usr/share/metainfo/", "644"],
+    ["data/icons/io.github.annota.Annota.svg", "usr/share/icons/hicolor/scalable/apps/", "644"],
+    ["README.md", "usr/share/doc/annota/", "644"],
+]

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Annota
+GenericName=Screenshot Annotator
+GenericName[es]=Anotador de capturas
+Comment=Take a screenshot of a region and annotate it
+Comment[es]=Captura una región de la pantalla y anótala
+Exec=annota --delay 500
+Icon=io.github.annota.Annota
+Terminal=false
+Categories=Utility;
+Keywords=screenshot;capture;annotate;print;captura;pantalla;
+StartupNotify=false
