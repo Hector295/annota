@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>io.github.annota.Annota</id>
+  <id>io.github.hector295.Annota</id>
   <name>Annota</name>
   <summary>Select a screen region and annotate it</summary>
   <metadata_license>CC0-1.0</metadata_license>
@@ -12,7 +12,11 @@
       result to the clipboard or save it as PNG.
     </p>
   </description>
-  <launchable type="desktop-id">io.github.annota.Annota.desktop</launchable>
+  <url type="homepage">https://github.com/Hector295/annota</url>
+  <developer id="io.github.hector295">
+    <name>Hector295</name>
+  </developer>
+  <launchable type="desktop-id">io.github.hector295.Annota.desktop</launchable>
   <content_rating type="oars-1.1"/>
   <releases>
     <release version="0.1.0" date="2026-10-07"/>

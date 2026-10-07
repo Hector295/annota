@@ -24,7 +24,7 @@ de abrir ventanas, la primera vez muestra una ventana «Conceder permiso»: al p
 pregunta y el permiso queda guardado.
 
 - El portal identifica la aplicación por su *scope* de systemd. Lanzado desde el menú o un
-  atajo es `io.github.annota.Annota` (requiere tenerlo instalado). Desde una terminal normal
+  atajo es `io.github.hector295.Annota` (requiere tenerlo instalado). Desde una terminal normal
   no hay ID y GNOME lo permite. Desde la terminal de un IDE empaquetado (snap/flatpak, p. ej.
   RustRover) la captura se atribuye al IDE y falla: usa una terminal normal.
 - Si denegaste el permiso, restablécelo con:
@@ -33,7 +33,7 @@ pregunta y el permiso queda guardado.
   gdbus call --session --dest org.freedesktop.impl.portal.PermissionStore \
     --object-path /org/freedesktop/impl/portal/PermissionStore \
     --method org.freedesktop.impl.portal.PermissionStore.DeletePermission \
-    screenshot screenshot io.github.annota.Annota
+    screenshot screenshot io.github.hector295.Annota
   ```
 
 ## Atajo de teclado (Print Screen)
@@ -128,5 +128,5 @@ Principios:
 cargo install cargo-deb && cargo deb          # → target/debian/annota_*.deb
 ```
 
-Flatpak (runtime GNOME 51): ver `flatpak/io.github.annota.Annota.yml`; requiere generar
+Flatpak (runtime GNOME 51): ver `flatpak/io.github.hector295.Annota.yml`; requiere generar
 `cargo-sources.json` con `flatpak-cargo-generator.py` (flatpak-builder-tools).

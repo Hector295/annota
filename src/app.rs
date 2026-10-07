@@ -12,7 +12,7 @@ use crate::capture::{self, CaptureError, ScreenshotBackend};
 use crate::ui::{Session, permission};
 
 /// Reverse-DNS id. Used for D-Bus single instance, the portal and Flatpak.
-pub const APP_ID: &str = "io.github.annota.Annota";
+pub const APP_ID: &str = "io.github.hector295.Annota";
 
 #[derive(Default)]
 enum State {
