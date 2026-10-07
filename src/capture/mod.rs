@@ -47,10 +47,18 @@ impl CapturedImage {
 #[derive(Debug)]
 pub enum CaptureError {
     /// The user dismissed the request: not an error worth reporting.
+    #[cfg_attr(
+        not(target_os = "linux"),
+        allow(dead_code, reason = "only the portal reports it")
+    )]
     Cancelled,
     /// The system refused without details. With the GNOME portal this
     /// usually means the app has no screenshot permission yet and GNOME
     /// could not ask, because only the focused app may show that dialog.
+    #[cfg_attr(
+        not(target_os = "linux"),
+        allow(dead_code, reason = "only the portal reports it")
+    )]
     Refused,
     Failed(anyhow::Error),
 }

@@ -12,7 +12,7 @@ jobs:
     name: Linux
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install GTK
         run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev
       - uses: dtolnay/rust-toolchain@stable
@@ -33,7 +33,7 @@ jobs:
           cp target/release/annota README.md LICENSE dist/annota/
           cp -r data dist/annota/
           tar -C dist -czf annota-linux-x86_64.tar.gz annota
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: annota-linux-x86_64
           path: |
@@ -47,7 +47,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
           msystem: UCRT64
@@ -55,7 +55,7 @@ jobs:
           install: zip
           pacboy: >-
             gcc:p pkgconf:p rust:p gtk4:p librsvg:p adwaita-icon-theme:p
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: target
           key: windows-target-${{ hashFiles('Cargo.lock') }}
@@ -70,7 +70,7 @@ jobs:
         run: |
           $p = Start-Process -FilePath dist\annota\annota.exe -ArgumentList '--help' -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) { throw "annota.exe --help exited with $($p.ExitCode)" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: annota-windows-x86_64
           path: annota-windows-x86_64.zip
@@ -83,11 +83,11 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
           merge-multiple: true
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/*.deb
